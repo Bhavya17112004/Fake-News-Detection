@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fake News Detector</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #2c3e50;
+            --accent-color: #e74c3c;
+            --success-color: #2ecc71;
+            --background-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+
+        body {
+            background: var(--background-gradient);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .main-container {
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+            background: rgba(255, 255, 255, 0.95);
+            height: 100%;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .model-selector {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .model-option {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .model-option:hover {
+            background: #f8f9fa;
+        }
+
+        .model-option input[type="checkbox"] {
+            margin-right: 10px;
+            width: 20px;
+            height: 20px;
+        }
+
+        .model-icon {
+            font-size: 1.5rem;
+            margin-right: 10px;
+            color: var(--primary-color);
+        }
+
+        .text-input {
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 15px;
+            font-size: 1.1rem;
+            transition: border-color 0.3s ease;
+            height: 150px;
+        }
+
+        .text-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(74, 144, 226, 0.25);
+        }
+
+        .btn-analyze {
+            background: var(--primary-color);
+            border: none;
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            width: 100%;
+            max-width: 300px;
+        }
+
+        .btn-analyze:hover {
+            background: #357abd;
+            transform: translateY(-2px);
+        }
+
+        .results-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        .result-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            height: 100%;
+        }
+
+        .result-card.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .result-card.fake {
+            border-left: 5px solid var(--accent-color);
+        }
+
+        .result-card.real {
+            border-left: 5px solid var(--success-color);
+        }
+
+        .prediction-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 10px 0;
+            text-align: center;
+        }
+
+        .prediction-value.fake {
+            color: var(--accent-color);
+        }
+
+        .prediction-value.real {
+            color: var(--success-color);
+        }
+
+        .confidence-bar {
+            height: 10px;
+            background: #e9ecef;
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            transition: width 1s ease;
+        }
+
+        .confidence-fill.fake {
+            background: var(--accent-color);
+        }
+
+        .confidence-fill.real {
+            background: var(--success-color);
+        }
+
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .model-description {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+
+        .stats-card {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            text-align: center;
+        }
+
+        .stats-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .stats-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+
+        .model-name {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--secondary-color);
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .input-section {
+            margin-bottom: 2rem;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            margin: 2rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="row">
+            <div class="col-12">
+                <div class="card p-4">
+                    <h1 class="text-center mb-4">Fake News Detector</h1>
+                    
+                    <!-- Model Selection -->
+                    <div class="model-selector">
+                        <h4 class="mb-3">Select Models</h4>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="model-option">
+                                    <input type="checkbox" id="logistic_regression" name="models" value="logistic_regression">
+                                    <i class="fas fa-chart-line model-icon"></i>
+                                    <div>
+                                        <label for="logistic_regression">Logistic Regression</label>
+                                        <div class="model-description">Simple and fast model for binary classification</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="model-option">
+                                    <input type="checkbox" id="decision_tree" name="models" value="decision_tree">
+                                    <i class="fas fa-project-diagram model-icon"></i>
+                                    <div>
+                                        <label for="decision_tree">Decision Tree</label>
+                                        <div class="model-description">Tree-based model for clear decision paths</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="model-option">
+                                    <input type="checkbox" id="random_forest" name="models" value="random_forest">
+                                    <i class="fas fa-tree model-icon"></i>
+                                    <div>
+                                        <label for="random_forest">Random Forest</label>
+                                        <div class="model-description">Ensemble of decision trees for robust predictions</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="model-option">
+                                    <input type="checkbox" id="gradient_boosting" name="models" value="gradient_boosting">
+                                    <i class="fas fa-chart-bar model-icon"></i>
+                                    <div>
+                                        <label for="gradient_boosting">Gradient Boosting</label>
+                                        <div class="model-description">Advanced ensemble method for accurate predictions</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="model-option">
+                                    <input type="checkbox" id="lstm" name="models" value="lstm">
+                                    <i class="fas fa-brain model-icon"></i>
+                                    <div>
+                                        <label for="lstm">LSTM</label>
+                                        <div class="model-description">Deep learning model for sequential data analysis</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Text Input -->
+                    <div class="input-section">
+                        <label for="text" class="form-label">Enter Text to Analyze</label>
+                        <textarea class="form-control text-input" id="text" placeholder="Paste your news article here..."></textarea>
+                    </div>
+
+                    <!-- Analyze Button -->
+                    <div class="button-container">
+                        <button class="btn btn-primary btn-analyze" onclick="analyzeText()">
+                            <i class="fas fa-search"></i> Analyze Text
+                        </button>
+                    </div>
+
+                    <!-- Loading Spinner -->
+                    <div class="loading-spinner" id="loadingSpinner">
+                        <div class="spinner"></div>
+                        <p class="mt-2">Analyzing text...</p>
+                    </div>
+
+                    <!-- Results Section -->
+                    <div class="results-container" id="results"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function analyzeText() {
+            const text = document.getElementById('text').value;
+            const selectedModels = Array.from(document.querySelectorAll('input[name="models"]:checked'))
+                .map(checkbox => checkbox.value);
+
+            if (!text) {
+                alert('Please enter some text to analyze');
+                return;
+            }
+
+            if (selectedModels.length === 0) {
+                alert('Please select at least one model');
+                return;
+            }
+
+            // Show loading spinner
+            document.getElementById('loadingSpinner').style.display = 'block';
+            document.getElementById('results').innerHTML = '';
+
+            // Send request to backend
+            fetch('/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    text: text,
+                    models: selectedModels
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Hide loading spinner
+                document.getElementById('loadingSpinner').style.display = 'none';
+
+                // Display results
+                const resultsDiv = document.getElementById('results');
+                resultsDiv.innerHTML = '';
+
+                Object.entries(data).forEach(([model, result]) => {
+                    const isFake = result.prediction === 'Fake';
+                    const resultCard = document.createElement('div');
+                    resultCard.className = `result-card ${isFake ? 'fake' : 'real'}`;
+                    resultCard.innerHTML = `
+                        <div class="model-name">${model.replace(/_/g, ' ').toUpperCase()}</div>
+                        <div class="prediction-value ${isFake ? 'fake' : 'real'}">${result.prediction}</div>
+                        <div class="stats-card">
+                            <div class="stats-value">${result.confidence}</div>
+                            <div class="stats-label">Confidence</div>
+                        </div>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill ${isFake ? 'fake' : 'real'}" 
+                                 style="width: ${parseFloat(result.confidence) * 100}%"></div>
+                        </div>
+                    `;
+                    resultsDiv.appendChild(resultCard);
+                    
+                    // Trigger animation
+                    setTimeout(() => {
+                        resultCard.classList.add('show');
+                    }, 100);
+                });
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('loadingSpinner').style.display = 'none';
+                alert('An error occurred while analyzing the text');
+            });
+        }
+    </script>
+</body>
+</html> 
